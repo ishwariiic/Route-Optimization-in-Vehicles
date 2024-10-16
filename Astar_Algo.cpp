@@ -2,141 +2,99 @@
 #include <vector>
 #include <queue>
 #include <cmath>
+#include <tuple>
 #include <limits>
-#include <unordered_map>
-#include <string>
-#include <algorithm>
-
 using namespace std;
 
-struct Node 
-{
-    int vertex;
-    double weight;
-    Node(int v, double w) : vertex(v), weight(w) {}
+#define INF numeric_limits<double>::max()
+
+struct Intersection {
+    int id;
+    double x, y;
+    bool has_traffic;   
+    double elevation;   
 };
 
-struct Compare 
-{
-    bool operator()(Node const& a, Node const& b) {
-        return a.weight > b.weight;
-    }
-};
 
-class Graph 
-{
-public:
-    int V;
-    vector<vector<Node>> adjList;
-    unordered_map<int, pair<double, double>> coordinates;
+double calculate_heuristic(const Intersection& a, const Intersection& b) {
+    double distance = sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+    return distance;
+}
 
-    Graph(int vertices) : V(vertices), adjList(vertices) {}
 
-    void addEdge(int u, int v, double weight) {
-        adjList[u].push_back(Node(v, weight));
-        adjList[v].push_back(Node(u, weight));
-    }
+double calculate_dynamic_weight(int base_weight, const Intersection& u, const Intersection& v) {
+    double traffic_factor = (v.has_traffic) ? 1.5 : 1.0;
+    double elevation_diff = abs(v.elevation - u.elevation); 
+    
 
-    void setCoordinates(int vertex, double x, double y) 
-    {
-        coordinates[vertex] = make_pair(x, y);
-    }
+    return base_weight * traffic_factor + 0.2 * elevation_diff;
+}
 
-    vector<double> dijkstra(int start) {
-        vector<double> dist(V, numeric_limits<double>::max());
-        dist[start] = 0;
-        priority_queue<Node, vector<Node>, Compare> pq;
-        pq.push(Node(start, 0));
+void a_star(int src, int dest, int V, vector<vector<pair<int, int>>>& adj, vector<Intersection>& intersections) {
+    vector<double> dist(V, INF);
+    vector<int> parent(V, -1); 
+    priority_queue<pair<double, int>, vector<pair<double, int>>, greater<pair<double, int>>> pq;
 
-        while (!pq.empty()) {
-            int u = pq.top().vertex;
-            double uDist = pq.top().weight;
-            pq.pop();
+    dist[src] = 0;
+    pq.push({0, src});
 
-            if (uDist > dist[u]) continue;
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        pq.pop();
 
-            for (const auto& neighbor : adjList[u]) {
-                int v = neighbor.vertex;
-                double weight = neighbor.weight;
-                if (dist[v] > uDist + weight) {
-                    dist[v] = uDist + weight;
-                    pq.push(Node(v, dist[v]));
-                }
-            }
-        }
-        return dist;
-    }
+        if (u == dest) break; 
 
-    double heuristic(int u, int goal) {
-        if (coordinates.find(u) == coordinates.end() || coordinates.find(goal) == coordinates.end()) {
-            return abs(u - goal);
-        }
-        double x1 = coordinates[u].first;
-        double y1 = coordinates[u].second;
-        double x2 = coordinates[goal].first;
-        double y2 = coordinates[goal].second;
-        return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
-    }
+        for (auto edge : adj[u]) {
+            int v = edge.first;
+            int base_weight = edge.second;
 
-    vector<int> aStar(int start, int goal) {
-        vector<double> dist(V, numeric_limits<double>::max());
-        vector<int> parent(V, -1);
-        dist[start] = 0;
-        priority_queue<Node, vector<Node>, Compare> pq;
-        pq.push(Node(start, 0));
+        
+            double dynamic_weight = calculate_dynamic_weight(base_weight, intersections[u], intersections[v]);
+            
+           
+            double heuristic = calculate_heuristic(intersections[v], intersections[dest]);
+            double new_cost = dist[u] + dynamic_weight;
 
-        vector<double> fScore(V, numeric_limits<double>::max());
-        fScore[start] = heuristic(start, goal);
-
-        while (!pq.empty()) {
-            int u = pq.top().vertex;
-            pq.pop();
-
-            if (u == goal) break;
-
-            for (const auto& neighbor : adjList[u]) {
-                int v = neighbor.vertex;
-                double weight = neighbor.weight;
-                double tentative_gScore = dist[u] + weight;
-
-                if (tentative_gScore < dist[v]) {
-                    parent[v] = u;
-                    dist[v] = tentative_gScore;
-                    fScore[v] = dist[v] + heuristic(v, goal);
-                    pq.push(Node(v, fScore[v]));
-                }
-            }
-        }
-
-        vector<int> path;
-        for (int v = goal; v != -1; v = parent[v]) {
-            path.push_back(v);
-        }
-        reverse(path.begin(), path.end());
-        return path;
-    }
-
-    void updateEdge(int u, int v, double newWeight) {
-        for (auto& neighbor : adjList[u]) {
-            if (neighbor.vertex == v) {
-                neighbor.weight = newWeight;
-                break;
-            }
-        }
-        for (auto& neighbor : adjList[v]) {
-            if (neighbor.vertex == u) {
-                neighbor.weight = newWeight;
-                break;
+            if (new_cost + heuristic < dist[v]) {
+                dist[v] = new_cost;
+                parent[v] = u;
+                pq.push({dist[v] + heuristic, v});
             }
         }
     }
 
-    void removeEdge(int u, int v) {
-        adjList[u].erase(remove_if(adjList[u].begin(), adjList[u].end(),
-                                   [v](const Node& n) { return n.vertex == v; }),
-                         adjList[u].end());
-        adjList[v].erase(remove_if(adjList[v].begin(), adjList[v].end(),
-                                   [u](const Node& n) { return n.vertex == u; }),
-                         adjList[v].end());
+ 
+    if (dist[dest] == INF) {
+        cout << "No path found from " << src << " to " << dest << "\n";
+        return;
     }
-};
+
+    cout << "Optimized A* path from source " << src << " to destination " << dest << " is: " << dist[dest] << "\n";
+    
+}
+
+int main() {
+    int V = 5;
+
+    vector<Intersection> intersections = {
+        {0, 0.0, 0.0, false, 100.0},
+        {1, 1.0, 1.0, true, 150.0},
+        {2, 2.0, 2.0, false, 130.0},
+        {3, 3.0, 3.0, false, 110.0},
+        {4, 4.0, 4.0, true, 180.0}
+    };
+
+    vector<vector<pair<int, int>>> adj(V);
+    adj[0].push_back({1, 10});
+    adj[0].push_back({4, 5});
+    adj[1].push_back({2, 1});
+    adj[2].push_back({3, 4});
+    adj[3].push_back({0, 7});
+    adj[4].push_back({1, 3});
+    adj[4].push_back({2, 9});
+
+    int src = 0, dest = 3;
+    a_star(src, dest, V, adj, intersections);
+
+    return 0;
+}
