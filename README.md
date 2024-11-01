@@ -1,3 +1,3 @@
 # Route-Optimization-in-Vehicles
 Route Optimization in Vehicles-efficient pathfinding and optimal route planning are essential for autonomous vehicles (AVs) to navigate safely and effectively in complex and dynamic environments. This project focuses on the use of advanced data structures to improve the performance of pathfinding algorithms in AV systems.
-The tech stack used in this project is - HTML,CSS,JS for frontend and C++ for writing the pathfinding algorithms.Leaflet has been used for embedding maps and showing real time locations. Particle Js has been used for adding the dynamic animated background to the website. The website is deployed using Vercel.
+The tech stack used in this project is - HTML,CSS,JS for frontend and C++ for writing the pathfinding algorithms.Leaflet has been used for embedding maps and showing real time locations. Particle Js has been used for adding the dynamic animated background to the website. The website is deployed using Vercel..
