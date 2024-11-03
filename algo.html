@@ -182,6 +182,26 @@
         </div>
     </div>
     
+<div class="algorithm-container">
+    <label for="algorithm-select">Choose Algorithm:</label>
+    <select id="algorithm-select">
+        <option value="astar">A*</option>
+        <option value="dijkstra">Dijkstra</option>
+        <option value="bellman-ford">Bellman-Ford</option>
+    </select>
+    <button class="submit-button" onclick="calculateRoute()">Calculate Route</button>
+</div>
+
+<script>
+    function calculateRoute() {
+        const selectedAlgorithm = document.getElementById('algorithm-select').value;
+
+        console.log("Calculating route using:", selectedAlgorithm);
+        
+        
+    }
+</script>
+
 <div id="particles-js"></div>
 
 <script>
